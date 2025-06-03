@@ -1,0 +1,77 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local soccerBallPath = game:GetService("Workspace"):WaitForChild("FootballField")
+local soccerBall = soccerBallPath:FindFirstChild("SoccerBall")
+
+-- Animation IDs for diving
+local diveAnimationIds = {
+    "rbxassetid://16428780736",
+    "rbxassetid://16428788224",
+    "rbxassetid://16428773038",
+    "rbxassetid://16428797277"
+}
+
+-- Function to update the soccer ball reference
+local function updateSoccerBall()
+    soccerBall = soccerBallPath:FindFirstChild("SoccerBall")
+    if soccerBall then
+        print("SoccerBall found:", soccerBall.Name)
+    else
+        warn("SoccerBall not found in the workspace!")
+    end
+end
+
+-- Teleport the soccer ball
+local function teleportSoccerBall()
+    if character and soccerBall then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            local newPosition = humanoidRootPart.CFrame + (humanoidRootPart.CFrame.LookVector * 2)
+            
+            -- Check if the ball can be teleported
+            if soccerBall:IsA("BasePart") then
+                soccerBall.CFrame = newPosition
+                print("Ball teleported to position:", newPosition.Position)
+            elseif soccerBall:IsA("Model") and soccerBall.PrimaryPart then
+                soccerBall:SetPrimaryPartCFrame(newPosition)
+                print("Model teleported to position:", newPosition.Position)
+            else
+                warn("SoccerBall is neither a BasePart nor a Model with a PrimaryPart!")
+            end
+        else
+            warn("HumanoidRootPart is missing!")
+        end
+    else
+        warn("Character or SoccerBall is not available!")
+    end
+end
+
+-- Monitor animations played by the humanoid's Animator
+local function detectDiveAnimations()
+    local humanoid = character:WaitForChild("Humanoid")
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+
+    if animator then
+        animator.AnimationPlayed:Connect(function(animationTrack)
+            local animationId = animationTrack.Animation.AnimationId
+            if table.find(diveAnimationIds, animationId) then
+                print("Dive animation detected:", animationId)
+                teleportSoccerBall()
+            end
+        end)
+    else
+        warn("Animator not found in humanoid!")
+    end
+end
+
+-- Ball tracking
+soccerBallPath.ChildAdded:Connect(function(child)
+    if child.Name == "SoccerBall" then
+        soccerBall = child
+        print("New SoccerBall detected:", child.Name)
+    end
+end)
+
+-- Initial setup
+updateSoccerBall()
+detectDiveAnimations()
